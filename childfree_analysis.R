@@ -10,13 +10,16 @@ childfree <- read.csv("childfree_survey_2025.csv") %>%
   filter(parenthood == "I do not have children nor want to have them in any capacity (biological, adopted, fostered, step- or other) at any point in the future.")
 mixed_ethnicity <- c("","African Descent/Black","Arabic/Middle Eastern/Near Eastern","Caucasian/White","East Asian" ,"Hispanic" ,"Indian/South Asian","Jewish (the ethnicity, not religion)" ,"North American Indigenous or Alaskan Native","Other","Pacific Islander/Melanesian","South-East Asian")
 minority_ethnicity <- c("African Descent/Black","Arabic/Middle Eastern/Near Eastern","East Asian" ,"Hispanic" ,"Indian/South Asian","Jewish (the ethnicity, not religion)" ,"North American Indigenous or Alaskan Native","Other","Pacific Islander/Melanesian","South-East Asian")
+gender_diverse <- c("Agender", "Non-binary", "Other")
 childfree <- childfree %>% mutate(US = case_when(.$current_location == "United States" ~ "US", .$current_location != "United States" ~ "Non US")) %>% 
   mutate(sterilization_desire = 
-           case_when(.$sterilization_status == "Yes" ~ "Sterilized", .$sterilization_status %in% c("No, but desired and looking for a doctor", "No, but desired and not looking for a doctor yet", "No, but waiting for the procedure", "No, but desired and not legal") ~ "Desired", .$sterilization_status %in% c("No, and not needed", "No, and not desired ") ~ "Not Desired", .$sterilization_status %in% c("Sterile due to a medical procedure", "Naturally sterile") ~ "Already Sterile")) %>%
+           case_when(.$sterilization_status == "Yes" ~ "Sterilized", .$sterilization_status %in% c("No, but desired and looking for a doctor", "No, but desired and not looking for a doctor yet", "No, but waiting for the procedure", "No, but desired and not legal") ~ "Desired", .$sterilization_status %in% c("No, and not needed", "No, and not desired") ~ "Not Desired", .$sterilization_status %in% c("Sterile due to a medical procedure", "Naturally sterile") ~ "Already Sterile")) %>%
   mutate(relation_conden = case_when(.$relationship_status %in% c("Single and not looking", "Single and open to non-serious options", "Single, looking for something serious") ~ "Single", .$relationship_status == "Short term relationship" ~ "Short term relationship", .$relationship_status %in% c("Long term relationship, not living with together", "Long term relationship, living together", "Engaged", "Married") ~ "Long-Term, Serious", .$relationship_status %in% c("Separated", "Divorced", "Widowed") ~ "Previously Serious", .$relationship_status == "Other" ~ "Other")) %>%
   mutate(ethnicity_conden = case_when(.$ethnicity == "" ~ "", .$ethnicity == "African Descent/Black" ~ "African Descent/Black", .$ethnicity == "Arabic/Middle Eastern/Near Eastern" ~ "Arabic/Middle Eastern/Near Eastern", .$ethnicity == "Caucasian/White" ~ "Caucasian/White", .$ethnicity == "East Asian" ~ "East Asian", .$ethnicity == "Hispanic" ~ "Hispanic", .$ethnicity == "Indian/South Asian" ~ "Indian/South Asian", .$ethnicity == "Jewish (the ethnicity, not religion)" ~ "Jewish (the ethnicity, not religion)", .$ethnicity == "North American Indigenous or Alaskan Native" ~ "North American Indigenous or Alaskan Native", .$ethnicity == "Other" ~ "Other", .$ethnicity == "Pacific Islander/Melanesian" ~ "Pacific Islander/Melanesian", .$ethnicity == "South-East Asian" ~ "South-East Asian", !(.$ethnicity %in% mixed_ethnicity) ~ "Mixed Ethincity")) %>%
   mutate(doctor_refusals_num = case_when(.$doctor_refusals == "" ~ NA, .$doctor_refusals == "0" ~ 0, .$doctor_refusals == "1" ~ 1, .$doctor_refusals == "2" ~ 2,.$doctor_refusals == "3" ~ 3,.$doctor_refusals == "4" ~ 4, .$doctor_refusals == "5" ~ 5, .$doctor_refusals == "6" ~ 6, .$doctor_refusals == "8" ~ 8, .$doctor_refusals == "I haven't found a doctor willing to sterilize me yet" ~ NA, .$doctor_refusals == "10+" ~ 10)) %>%
-  mutate(racial_minorities = case_when(.$ethnicity == "" ~ "", .$ethnicity == "Caucasian/White" ~ "Caucasian/White", !(.$ethnicity %in% mixed_ethnicity) ~ "Mixed Ethincity", .$ethnicity %in% minority_ethnicity ~ "Ethinc Minority"))
+  mutate(racial_minorities = case_when(.$ethnicity == "" ~ "", .$ethnicity == "Caucasian/White" ~ "Caucasian/White", !(.$ethnicity %in% mixed_ethnicity) ~ "Mixed Ethincity", .$ethnicity %in% minority_ethnicity ~ "Ethinc Minority")) %>%
+  mutate(gender_conden = case_when(gender %in% gender_diverse ~ "Gender Diverse", gender == "Man" ~ "Man", gender == "Woman" ~ "Woman"))
+
 childfree <- childfree %>% mutate(age_group = factor(age_group, levels = c("18 years old or younger","19 to 24","25 to 29","30 to 34","35 to 39","40 to 44","45 to 49","50 to 54","55 to 59","60 to 64","65 to 69","70 to 74","75 or older"), ordered = TRUE)) %>% 
   mutate(childfree_age = factor(childfree_age, levels = c("18 years old or younger","19 to 24","25 to 29","30 to 34","35 to 39","40 to 44","45 to 49"), ordered = TRUE)) %>%
   mutate(gender = factor(gender, ordered = FALSE)) %>%
@@ -54,119 +57,112 @@ childfree <- childfree %>% mutate(age_group = factor(age_group, levels = c("18 y
   mutate(sterilization_desire = factor(sterilization_desire, levels = c("Already Sterile","Not Desired","Desired","Sterilized"), ordered = TRUE)) %>%
   mutate(relation_conden = factor(relation_conden, levels = c("Single","Short term relationship","Long-Term, Serious","Previously Serious","Other"), ordered = TRUE)) %>%
   mutate(ethnicity_conden = factor(ethnicity_conden, ordered = FALSE)) %>%
-  mutate(racial_minorities = factor(racial_minorities, ordered = FALSE))
+  mutate(racial_minorities = factor(racial_minorities, ordered = FALSE)) %>%
+  mutate(gender_conden = factor(gender_conden, ordered = FALSE))
 
-sterilized <- childfree %>% filter(sterilization_status == "Yes" & doctor_refusals != "" & doctor_refusals != "I haven't found a doctor willing to sterilize me yet")
+complete_childfree <- childfree %>% filter(age_group != "" 
+                                           & childfree_age != "" 
+                                           & gender != "" 
+                                           & sexual_orientation != "" 
+                                           & education != "" 
+                                           & job_importance != "" 
+                                           & retired != "" 
+                                           & !is.na(SES) 
+                                           & old_age_plan != "" 
+                                           & nationality != "" 
+                                           & current_location != "" 
+                                           & ethnicity != "" 
+                                           & childhood_faith != "" 
+                                           & current_faith != "" 
+                                           & current_faith != "Jedi Knights"
+                                           & religious_practice != "" 
+                                           & relationship_status != "" 
+                                           & partner_childfree != "" 
+                                           &  !is.na(happy_childhood) 
+                                           & sterilization_status != "" 
+                                           & single_parent_option != "" 
+                                           & childfree_main_reason != "" 
+                                           & !is.na(child_feelings) 
+                                           & child_focused_job != "" 
+                                           & childfree_support != "" 
+                                           & openly_childfree_loved_ones != "" 
+                                           & !is.na(childfree_location.) 
+                                           & bingo_frequency != "" 
+                                           & pro.choice != "" 
+                                           & financial_abortion != "" 
+                                           & pet_ownership != "" 
+                                           & introversion_level != "" 
+                                           & reddit_activity != ""
+                                           & major !=""
+                                           & current_industry != ""
+                                           & work_hours != ""
+                                           & industry_position != "")
+#skipped doctor shopping age, sterilization age, sterilization time, doctor refusals, doctor search strat
+
+
+sterilized <- childfree %>% filter(sterilization_status == "Yes" 
+                                   & doctor_refusals != "" 
+                                   & doctor_refusals != "I haven't found a doctor willing to sterilize me yet")
+
+complete_sterilized <- complete_childfree %>% filter(sterilization_status == "Yes" 
+                                                     & doctor_refusals != "" 
+                                                     & doctor_refusals != "I haven't found a doctor willing to sterilize me yet"
+                                                     & doctor_shopping_age != ""
+                                                     & sterilization_age != ""
+                                                     & sterilization_time != ""
+                                                     & doctor_search_strat != "")
+
 
 #Those who realized they're childfree at a younger age are more likely to be sterilized
-childfree %>% filter(childfree_age != "" & sterilization_desire != "") %>% 
-  ggplot(aes(childfree_age, fill = sterilization_desire)) + 
+#partially true, more likely to be AND want to be sterilized, REVERSE IS TRUE until late 30s
+complete_childfree %>% ggplot(aes(childfree_age, fill = sterilization_desire)) + 
   geom_bar(position = position_fill()) + 
   theme(axis.text.x=element_text(angle= 25, hjust = 1))
 
-childfree %>% filter(childfree_age != "" & sterilization_status != "") %>% 
-  ggplot(aes(childfree_age, fill = sterilization_status)) + 
-  geom_bar(position = position_fill()) + 
-  theme(axis.text.x=element_text(angle= 25, hjust = 1))
 
-#
-childfree %>% filter(age_group != "" & sterilization_status != "") %>% 
-  ggplot(aes(age_group, fill = sterilization_status)) + 
+#Those currently sterilized are mostly 30 or older at sterilization age 
+#False, mostly 25 to 29
+complete_sterilized %>% ggplot(aes(sterilization_age)) + 
+  geom_bar()
+
+#Those currently sterilized under 30 had to talk to more doctors 
+#False; ages late 40s & late 20s had less initial rejections; 10+ in 20s & late 30s; early 40s most likely for multiple rejections
+complete_sterilized %>% ggplot(aes(sterilization_age, fill = doctor_refusals)) +
   geom_bar(position = position_fill())
 
-childfree %>% filter(age_group != "" & sterilization_status != "") %>% 
-  ggplot(aes(sterilization_status, fill = age_group)) + 
-  geom_bar(position = position_fill()) + 
-  theme(axis.text.x=element_text(size = 5, angle= 25, hjust = 1))
-
-#Those currently sterilized are mostly 30 or older at sterilization age = False, mostly 25 to 29
-childfree %>% filter(sterilization_age != "" & sterilization_status == "Yes") %>%
-  ggplot(aes(sterilization_age)) + 
-  geom_bar()
-
-#Those currently sterilized under 30 had to talk to more doctors = False
-childfree %>% filter(sterilization_status == "Yes" & sterilization_age != "" & doctor_refusals != "" & doctor_refusals != "I haven't found a doctor willing to sterilize me yet") %>%
-  ggplot(aes(doctor_refusals, fill = sterilization_age)) +
-  geom_bar()
-
-childfree %>% filter(sterilization_status == "Yes" & sterilization_age != "" & doctor_refusals != "" & doctor_refusals != "I haven't found a doctor willing to sterilize me yet") %>%
-  ggplot(aes(doctor_refusals, fill = sterilization_age)) +
-  geom_bar(position = position_fill())
-
-childfree %>% filter(sterilization_status == "Yes" & sterilization_age != "" & doctor_refusals != "" & doctor_refusals != "I haven't found a doctor willing to sterilize me yet") %>%
-  ggplot(aes(sterilization_age, fill = doctor_refusals)) +
-  geom_bar()
-
-childfree %>% filter(sterilization_status == "Yes" & sterilization_age != "" & doctor_refusals != "" & doctor_refusals != "I haven't found a doctor willing to sterilize me yet") %>%
+complete_sterilized %>% filter(doctor_refusals != "0") %>%
   ggplot(aes(sterilization_age, fill = doctor_refusals)) +
   geom_bar(position = position_fill())
-  
-#Women had to talk to more doctors than men = True 
-childfree %>% filter(sterilization_status == "Yes" & gender != "" & doctor_refusals != "" & doctor_refusals != "I haven't found a doctor willing to sterilize me yet") %>%
-  ggplot(aes(doctor_refusals, fill = gender)) +
-  geom_bar()
 
-childfree %>% filter(sterilization_status == "Yes" & gender != "" & doctor_refusals != "" & doctor_refusals != "I haven't found a doctor willing to sterilize me yet") %>%
-  ggplot(aes(doctor_refusals, fill = gender)) +
-  geom_bar(position = position_fill())
-
-childfree %>% filter(sterilization_status == "Yes" & gender != "" & doctor_refusals != "" & doctor_refusals != "I haven't found a doctor willing to sterilize me yet") %>%
-  ggplot(aes(gender, fill = doctor_refusals)) +
-  geom_bar()
-
-childfree %>% filter(sterilization_status == "Yes" & gender != "" & doctor_refusals != "" & doctor_refusals != "I haven't found a doctor willing to sterilize me yet") %>%
-  ggplot(aes(gender, fill = doctor_refusals)) +
-  geom_bar(position = position_fill())
-
-childfree %>% filter(sterilization_status %in% c("Yes", "No, but waiting for the procedure") & gender != "" & doctor_refusals != "" & doctor_refusals != "I haven't found a doctor willing to sterilize me yet") %>%
-  ggplot(aes(doctor_refusals, fill = gender)) +
-  geom_bar()
-
-childfree %>% filter(sterilization_status %in% c("Yes", "No, but waiting for the procedure") & gender != "" & doctor_refusals != "" & doctor_refusals != "I haven't found a doctor willing to sterilize me yet") %>%
-  ggplot(aes(doctor_refusals, fill = gender)) +
-  geom_bar(position = position_fill())
-
-childfree %>% filter(sterilization_status %in% c("Yes", "No, but waiting for the procedure") & gender != "" & doctor_refusals != "" & doctor_refusals != "I haven't found a doctor willing to sterilize me yet") %>%
-  ggplot(aes(gender, fill = doctor_refusals)) +
-  geom_bar()
-
-childfree %>% filter(sterilization_status %in% c("Yes", "No, but waiting for the procedure") & gender != "" & doctor_refusals != "" & doctor_refusals != "I haven't found a doctor willing to sterilize me yet") %>%
-  ggplot(aes(gender, fill = doctor_refusals)) +
+#Women had to talk to more doctors than men  
+#True; but gender diverse more likely to experience rejection generally & at higher levels
+complete_sterilized %>% ggplot(aes(gender_conden, fill = doctor_refusals)) +
   geom_bar(position = position_fill())
 
 #Women were more likely to be or want to be sterilized than men
-childfree %>% filter(sterilization_desire != "" & gender != "") %>%
-  ggplot(aes(gender, fill = sterilization_desire)) +
-  geom_bar()
-
-childfree %>% filter(sterilization_desire != "" & gender != "") %>%
-  ggplot(aes(gender, fill = sterilization_desire)) +
+#False; slightly more men 
+complete_childfree %>% ggplot(aes(gender_conden, fill = sterilization_desire)) +
   geom_bar(position = position_fill())
 
-childfree %>% filter(sterilization_desire %in% c("Desired", "Sterilized") & gender != "") %>% 
-  ggplot(aes(gender, fill = sterilization_desire)) + 
+complete_childfree %>% filter(sterilization_desire %in% c("Desired", "Sterilized")) %>% 
+  ggplot(aes(gender_conden, fill = sterilization_desire)) + 
   geom_bar()
 
-c_gender <- childfree %>% filter(gender != "")
-C_man <- c_gender %>% filter(.$gender == "Man")
-C_woman <- c_gender %>% filter(.$gender == "Woman")
-mean(c_gender %>% .$sterilization_desire %in% c("Sterilized", "Desired"))
+C_man <- complete_childfree %>% filter(.$gender == "Man")
+C_woman <- complete_childfree %>% filter(.$gender == "Woman")
+mean(complete_childfree %>% .$sterilization_desire %in% c("Sterilized", "Desired"))
 mean(C_man %>% .$sterilization_desire %in% c("Sterilized", "Desired"))
 mean(C_woman %>% .$sterilization_desire %in% c("Sterilized", "Desired"))
 
-#Women in the US were more likely to be or want to be sterilized than in other countries
-childfree %>% filter(current_location != "" & sterilization_desire != "" & gender != "") %>%
-  ggplot(aes(gender, fill = sterilization_desire)) +
-  geom_bar() +
-  facet_grid(.~US)
-
-childfree %>% filter(current_location != "" & sterilization_desire != "" & gender != "") %>%
-  ggplot(aes(gender, fill = sterilization_desire)) +
+#Women in the US were more likely to be or want to be sterilized than in other countries = 
+#True; 0.71 for US Women & 0.57 for Non-US Women
+complete_childfree %>%
+  ggplot(aes(gender_conden, fill = sterilization_desire)) +
   geom_bar(position = position_fill()) +
   facet_grid(.~US) + 
   theme(axis.text.x=element_text(angle= 25, hjust = 1))
 
-c_curr_loc_woman <- childfree %>% filter(current_location != "") %>% filter(gender == "Woman")
+c_curr_loc_woman <- complete_childfree %>% filter(current_location != "") %>% filter(gender == "Woman")
 C_US_woman <- c_curr_loc_woman %>% filter(.$US == "US")
 C_Non_US_woman <- c_curr_loc_woman %>% filter(.$US == "Non US")
 mean(c_curr_loc_woman %>% .$sterilization_desire %in% c("Sterilized", "Desired"))
@@ -174,17 +170,8 @@ mean(C_US_woman %>% .$sterilization_desire %in% c("Sterilized", "Desired"))
 mean(C_Non_US_woman %>% .$sterilization_desire %in% c("Sterilized", "Desired"))
 
 #People in relationships were more likely to desire sterilization than single people
-c_relation <- childfree %>% filter(relationship_status != "" & sterilization_desire != "")
-
-c_relation %>% ggplot(aes(relationship_status, fill = sterilization_desire)) +
-  geom_bar() + 
-  theme(axis.text.x=element_text(size = 5, angle= 25, hjust = 1))
-
-c_relation %>% ggplot(aes(relationship_status, fill = sterilization_desire)) +
-  geom_bar(position = position_fill()) + 
-  theme(axis.text.x=element_text(size = 5, angle= 25, hjust = 1))
-
-c_relation %>% ggplot(aes(relation_conden, fill = sterilization_desire)) +
+#True; STR most likely to desire, Previously serious & other most likely to be sterilized 
+complete_childfree %>% ggplot(aes(relation_conden, fill = sterilization_desire)) +
   geom_bar(position = position_fill()) + 
   theme(axis.text.x=element_text(size = 8, angle= 10, hjust = 1))
 
@@ -196,7 +183,7 @@ c_illegal %>% ggplot(aes(current_location)) +
   geom_bar() + 
   theme(axis.text.x=element_text(size = 8, angle= 20, hjust = 1))
 
-c_illegal %>% ggplot(aes(current_location, fill = relationship_status)) +
+c_illegal %>% ggplot(aes(current_location, fill = relation_conden)) +
   geom_bar() + 
   theme(axis.text.x=element_text(size = 8, angle= 20, hjust = 1))
 
@@ -206,411 +193,564 @@ c_illegal %>% ggplot(aes(current_location, fill = age_group)) +
   theme(axis.text.x=element_text(size = 8, angle= 20, hjust = 1))
 
 #Correlation between Reddit activity level and introversion
-c_activity <- childfree %>% filter(reddit_activity != "" & introversion_level != "")
-
-c_activity %>% ggplot(aes(introversion_level, reddit_activity)) +
+#highest median & lowest range for posters, lowest median & IQR for participants, widest range for participants & commenters
+complete_childfree %>% ggplot(aes(introversion_level, reddit_activity)) +
   geom_boxplot()
 
 #Correlation between Reddit activity level and age
-c_activity %>% filter(age_group != "") %>%
-  ggplot(aes(reddit_activity, fill = age_group)) +
-  geom_bar() + 
-  theme(axis.text.x=element_text(size = 8, angle= 20, hjust = 1))
-
-c_activity %>% filter(age_group != "") %>%
+#trend of becoming more active with age, mostly to commenting; % peaks at early 40s and late 50s
+complete_childfree %>% filter(reddit_activity != "I don't know / I'm not sure") %>%
   ggplot(aes(age_group, fill = reddit_activity)) +
   geom_bar() + 
   theme(axis.text.x=element_text(size = 8, angle= 20, hjust = 1))
 
-c_activity %>% filter(age_group != "") %>%
-  ggplot(aes(age_group, fill = reddit_activity)) +
-  geom_bar() + 
-  theme(axis.text.x=element_text(size = 8, angle= 20, hjust = 1))
-
-c_activity %>% filter(age_group != "") %>%
-  ggplot(aes(reddit_activity, fill = age_group)) +
-  geom_bar(position = position_fill()) + 
-  theme(axis.text.x=element_text(size = 8, angle= 20, hjust = 1))
-
-c_activity %>% filter(age_group != "") %>%
+complete_childfree %>% filter(reddit_activity != "I don't know / I'm not sure") %>%
   ggplot(aes(age_group, fill = reddit_activity)) +
   geom_bar(position = position_fill()) + 
   theme(axis.text.x=element_text(size = 8, angle= 20, hjust = 1))
 
 #Correlation between Reddit activity level and realization age
-c_activity %>% filter(childfree_age != "") %>%
-  ggplot(aes(reddit_activity, fill = childfree_age)) +
-  geom_bar() + 
-  theme(axis.text.x=element_text(size = 8, angle= 20, hjust = 1))
-
-c_activity %>% filter(childfree_age != "") %>%
+#trend of becoming more active with higher childfree age to late 30s, mostly to commenting; late 30s highest % of posters & participants
+complete_childfree %>% filter(reddit_activity != "I don't know / I'm not sure") %>%
   ggplot(aes(childfree_age, fill = reddit_activity)) +
   geom_bar() + 
   theme(axis.text.x=element_text(size = 8, angle= 20, hjust = 1))
 
-c_activity %>% filter(childfree_age != "") %>%
-  ggplot(aes(reddit_activity, fill = childfree_age)) +
-  geom_bar(position = position_fill()) + 
-  theme(axis.text.x=element_text(size = 8, angle= 20, hjust = 1))
-
-c_activity %>% filter(childfree_age != "") %>%
+complete_childfree %>% filter(reddit_activity != "I don't know / I'm not sure") %>%
   ggplot(aes(childfree_age, fill = reddit_activity)) +
   geom_bar(position = position_fill()) + 
   theme(axis.text.x=element_text(size = 8, angle= 20, hjust = 1))
-
-#finding myself
-childfree %>% filter(age_group == "19 to 24" & childfree_age == "18 years old or younger" & gender == "Woman" & sexual_orientation == "Heterosexual" & education == "Bachelor's degree" & nationality == "United States" & current_location == "United States" & ethnicity == "African Descent/Black" & current_industry == "Retail")
 
 #Ethnicity and sterilization status 
-ethin_ster <- childfree %>% filter(ethnicity_conden != "" & sterilization_status != "" & sterilization_desire != "" & sterilization_desire != "NA")
-
-ethin_ster %>% ggplot(aes(ethnicity_conden, fill = sterilization_desire)) +
+#no big differences between white and minorites; 
+#of minorities, Hispanics most likely to be sterilized 
+#jewish people least likely, 
+#middle easterners most likely to be already sterile  
+complete_childfree %>% ggplot(aes(ethnicity_conden, fill = sterilization_desire)) +
   geom_bar() +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
-ethin_ster %>% ggplot(aes(ethnicity_conden, fill = sterilization_desire)) +
+complete_childfree %>% ggplot(aes(ethnicity_conden, fill = sterilization_desire)) +
   geom_bar(position = position_fill()) +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
-ethin_ster %>% ggplot(aes(racial_minorities, fill = sterilization_desire)) +
+complete_childfree %>% filter(racial_minorities == "Ethinc Minority") %>% 
+  ggplot(aes(ethnicity_conden, fill = sterilization_desire)) +
   geom_bar() +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
-ethin_ster %>% ggplot(aes(racial_minorities, fill = sterilization_desire)) +
+#!
+complete_childfree %>% filter(racial_minorities == "Ethinc Minority") %>%
+  ggplot(aes(ethnicity_conden, fill = sterilization_desire)) +
+  geom_bar(position = position_fill()) +
+  theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
+
+complete_childfree %>% ggplot(aes(racial_minorities, fill = sterilization_desire)) +
+  geom_bar() +
+  theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
+
+#!
+complete_childfree %>% ggplot(aes(racial_minorities, fill = sterilization_desire)) +
   geom_bar(position = position_fill()) +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
 #Ethnicity and doctor refusals, Minorities have an easier time 
-ethin_ster %>% filter(doctor_refusals != "" & doctor_refusals != "I haven't found a doctor willing to sterilize me yet") %>%
-  ggplot(aes(ethnicity_conden, fill = doctor_refusals)) +
+#False, mixed people most likely to experience doctor rejection
+#minorities most likely to have 10+ rejections
+#middle eastern > hispanic > others > mixed > black > white > east asian
+complete_sterilized %>% ggplot(aes(ethnicity_conden, fill = doctor_refusals)) +
   geom_bar() +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
-ethin_ster %>% filter(doctor_refusals != "" & doctor_refusals != "I haven't found a doctor willing to sterilize me yet") %>%
-  ggplot(aes(ethnicity_conden, fill = doctor_refusals)) +
+#!
+complete_sterilized %>% ggplot(aes(ethnicity_conden, fill = doctor_refusals)) +
   geom_bar(position = position_fill()) +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
-ethin_ster %>% filter(doctor_refusals != "" & doctor_refusals != "I haven't found a doctor willing to sterilize me yet") %>%
-  ggplot(aes(racial_minorities, fill = doctor_refusals)) +
+complete_sterilized %>% ggplot(aes(racial_minorities, fill = doctor_refusals)) +
   geom_bar() +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
-ethin_ster %>% filter(doctor_refusals != "" & doctor_refusals != "I haven't found a doctor willing to sterilize me yet") %>%
-  ggplot(aes(racial_minorities, fill = doctor_refusals)) +
+complete_sterilized %>% ggplot(aes(racial_minorities, fill = doctor_refusals)) +
+  geom_bar(position = position_fill()) +
+  theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
+
+#!
+complete_sterilized %>% filter(racial_minorities == "Ethinc Minority") %>%
+  ggplot(aes(ethnicity_conden, fill = doctor_refusals)) +
+  geom_bar() +
+  theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
+
+#!
+complete_sterilized %>% filter(racial_minorities == "Ethinc Minority") %>%
+  ggplot(aes(ethnicity_conden, fill = doctor_refusals)) +
   geom_bar(position = position_fill()) +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
 #SES and sterilization status
-SES_ster <- childfree %>% filter(SES != "" & sterilization_status != "" & sterilization_desire != "NA")
-SES_ster %>% ggplot(aes(SES, sterilization_desire)) +
+#biggest range for desired, shortest for already sterile
+#largest IQR for already sterile, shortest for not desired
+complete_childfree %>% ggplot(aes(SES, sterilization_desire)) +
   geom_boxplot() +
   geom_jitter(alpha = 0.2)
 
 #Childhood ratings and realization age 
-childhood_real_age <- childfree %>% filter(happy_childhood != "NA" & childfree_age != "")
-childhood_real_age %>% ggplot(aes(happy_childhood, childfree_age)) +
+#lower median for 18 and early 40s, higher for late 20s to late 30s
+complete_childfree %>% ggplot(aes(happy_childhood, childfree_age)) +
   geom_boxplot() +
   geom_jitter(alpha = 0.2)
 
 #Those with tokophobia want to be or are sterilized more than those with other main reasons = TRUE
-reason_ster_desire <- childfree %>% filter(childfree_main_reason != "" & sterilization_desire != "")
-
-reason_ster_desire %>% ggplot(aes(childfree_main_reason, fill = sterilization_desire)) +
+complete_childfree %>% ggplot(aes(childfree_main_reason, fill = sterilization_desire)) +
   geom_bar() +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
-reason_ster_desire %>% ggplot(aes(childfree_main_reason, fill = sterilization_desire)) +
+#!
+complete_childfree %>% ggplot(aes(childfree_main_reason, fill = sterilization_desire)) +
   geom_bar(position = position_fill()) +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
 #Job importance and child focused job 
-job_import_child_job <- childfree %>% filter(!(is.na(job_importance)) & child_focused_job != "")
-
-job_import_child_job %>% ggplot(aes(job_importance, child_focused_job)) +
+complete_childfree %>% ggplot(aes(job_importance, child_focused_job)) +
   geom_boxplot() +
   geom_jitter(alpha = 0.2)
 
 #Intersectionality with sterilization status
-identity_ster <- childfree %>% filter(gender != "" & ethnicity_conden != "" & !(is.na(SES)) & sterilization_desire != "")
+
 #Gender and ethnicity 
-identity_ster %>% filter(gender %in% c("Man", "Woman")) %>% ggplot(aes(ethnicity_conden, fill = sterilization_desire)) +
+#highest already sterile in gender diverse ethnic minorities
+#mixed gender diverse most likely to be sterilized and want to be sterilized
+#mixed women least likely to be sterilized 
+complete_childfree %>% ggplot(aes(ethnicity_conden, fill = sterilization_desire)) +
   geom_bar() +
-  facet_wrap(.~gender) +
+  facet_wrap(.~gender_conden) +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
-identity_ster %>% filter(gender %in% c("Man", "Woman")) %>% ggplot(aes(ethnicity_conden, fill = sterilization_desire)) +
+complete_childfree %>% ggplot(aes(ethnicity_conden, fill = sterilization_desire)) +
   geom_bar(position = position_fill()) +
-  facet_wrap(.~gender) +
+  facet_wrap(.~gender_conden) +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
-identity_ster %>% filter(gender %in% c("Man", "Woman")) %>% ggplot(aes(racial_minorities, fill = sterilization_desire)) +
+complete_childfree %>% filter(racial_minorities == "Ethinc Minority") %>%
+  ggplot(aes(ethnicity_conden, fill = sterilization_desire)) +
   geom_bar() +
-  facet_wrap(.~gender) +
+  facet_wrap(.~gender_conden) +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
-identity_ster %>% filter(gender %in% c("Man", "Woman")) %>% ggplot(aes(racial_minorities, fill = sterilization_desire)) +
+complete_childfree %>% filter(racial_minorities == "Ethinc Minority") %>%
+  ggplot(aes(ethnicity_conden, fill = sterilization_desire)) +
   geom_bar(position = position_fill()) +
-  facet_wrap(.~gender) +
+  facet_wrap(.~gender_conden) +
+  theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
+
+complete_childfree %>% ggplot(aes(racial_minorities, fill = sterilization_desire)) +
+  geom_bar() +
+  facet_wrap(.~gender_conden) +
+  theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
+
+#!
+complete_childfree %>% ggplot(aes(racial_minorities, fill = sterilization_desire)) +
+  geom_bar(position = position_fill()) +
+  facet_wrap(.~gender_conden) +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
 #Gender and SES
-identity_ster %>% filter(gender %in% c("Man", "Woman")) %>% ggplot(aes(SES, fill = sterilization_desire)) +
+#women have descreasing desire for sterilization as SES increases
+#steep increased rates of sterilization as SES increases for men and gender diverse
+complete_childfree %>% ggplot(aes(SES, fill = sterilization_desire)) +
   geom_bar() +
-  facet_wrap(.~gender) +
+  facet_wrap(.~gender_conden) +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
-identity_ster %>% filter(gender %in% c("Man", "Woman")) %>% ggplot(aes(SES, fill = sterilization_desire)) +
+#!
+complete_childfree %>% ggplot(aes(SES, fill = sterilization_desire)) +
   geom_bar(position = position_fill()) +
-  facet_wrap(.~gender) +
+  facet_wrap(.~gender_conden) +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 #SES and ethnicity 
-identity_ster %>% ggplot(aes(ethnicity_conden, fill = sterilization_desire)) +
+#increased rates of sterilization as SES increases for whites and mixed
+#decreased desire for sterilization for minorities
+#skiwed parabola of not desired for mixed
+
+complete_childfree %>% ggplot(aes(racial_minorities, fill = sterilization_desire)) +
   geom_bar() +
   facet_wrap(.~SES) +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
-identity_ster %>% ggplot(aes(ethnicity_conden, fill = sterilization_desire)) +
+complete_childfree %>% ggplot(aes(racial_minorities, fill = sterilization_desire)) +
   geom_bar(position = position_fill()) +
   facet_wrap(.~SES) +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
-identity_ster %>% ggplot(aes(racial_minorities, fill = sterilization_desire)) +
-  geom_bar() +
-  facet_wrap(.~SES) +
-  theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
-
-identity_ster %>% ggplot(aes(racial_minorities, fill = sterilization_desire)) +
-  geom_bar(position = position_fill()) +
-  facet_wrap(.~SES) +
-  theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
-
-identity_ster %>% ggplot(aes(SES, fill = sterilization_desire)) +
+complete_childfree %>% ggplot(aes(SES, fill = sterilization_desire)) +
   geom_bar() +
   facet_wrap(.~racial_minorities) +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
-identity_ster %>% ggplot(aes(SES, fill = sterilization_desire)) +
+#!
+complete_childfree %>% ggplot(aes(SES, fill = sterilization_desire)) +
   geom_bar(position = position_fill()) +
   facet_wrap(.~racial_minorities) +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
 #Childhood ratings and child focused job
-happy_child_job <- childfree %>% filter(!(is.na(happy_childhood)) & child_focused_job != "")
-
-happy_child_job %>% ggplot(aes(happy_childhood, child_focused_job)) +
+#those in child-focused job self-report a higher median childhood happiness
+complete_childfree %>% ggplot(aes(happy_childhood, child_focused_job)) +
   geom_boxplot() +
   geom_jitter(alpha = 0.2)
 
 #Childhood faith and bingo frequency
-chi_faith_bingo <- childfree %>% filter(childhood_faith != "" & bingo_frequency != "")
-
-chi_faith_bingo %>% ggplot(aes(childhood_faith, fill = bingo_frequency)) +
+#raised atheist and catholic only report getting bingoed once a day or more
+#raised pagan most unsure about bingoing
+#(small sample)raised pagan and wiccan mostly to be bingod once a week 
+#raised buddhist, orthodox, & agnostic top to be bingod once a week 
+#(small sample) Jehovah witness, siknism, and taoist never reported being bingoed
+#(small sample) followed by spiritualism, hinduism, then anglicanism to least likiely to report being bingoed
+#hinduism to least likily to report being bingoed
+complete_childfree %>% ggplot(aes(childhood_faith, fill = bingo_frequency)) +
   geom_bar() +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
   
-chi_faith_bingo %>% ggplot(aes(childhood_faith, fill = bingo_frequency)) +
+complete_childfree %>% ggplot(aes(childhood_faith, fill = bingo_frequency)) +
+  geom_bar(position = position_fill()) +
+  theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
+
+complete_childfree %>% filter(bingo_frequency != "I'm not sure whether or not I get bingod.") %>%
+  ggplot(aes(childhood_faith, fill = bingo_frequency)) +
+  geom_bar() +
+  theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
+
+complete_childfree %>% filter(bingo_frequency != "I'm not sure whether or not I get bingod.") %>%
+  ggplot(aes(childhood_faith, fill = bingo_frequency)) +
   geom_bar(position = position_fill()) +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
                            
 #Current faith and bingo frequency
-cur_faith_bingo <- childfree %>% filter(current_faith != "" & bingo_frequency != "")
-
-cur_faith_bingo %>% ggplot(aes(current_faith, fill = bingo_frequency)) +
+#currently catholics and none only report getting bingoed once a day or more
+#hindus, occustists, and protestants most unsure about bingoing
+#jews, wiccans, then pagans mostly to be bingod once a week 
+#(small sample) Jainism, sikhism, and taoism never reported being bingoed
+#(small sample) followed by islam, catholics, spiritalism to least likily to report being bingoed
+complete_childfree %>% ggplot(aes(current_faith, fill = bingo_frequency)) +
   geom_bar() +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
-cur_faith_bingo %>% ggplot(aes(current_faith, fill = bingo_frequency)) +
+top_current_faith <- c("Agnosticism", "Atheism", "None")
+
+complete_childfree %>% filter(!current_faith %in% top_current_faith) %>%
+  ggplot(aes(current_faith, fill = bingo_frequency)) +
+  geom_bar() +
+  theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
+
+complete_childfree %>% ggplot(aes(current_faith, fill = bingo_frequency)) +
+  geom_bar(position = position_fill()) +
+  theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
+#!
+complete_childfree %>% filter(bingo_frequency != "I'm not sure whether or not I get bingod.") %>%
+  ggplot(aes(current_faith, fill = bingo_frequency)) +
+  geom_bar() +
+  theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
+#!
+complete_childfree %>% filter(bingo_frequency != "I'm not sure whether or not I get bingod.") %>%
+  filter(!current_faith %in% top_current_faith) %>%
+  ggplot(aes(current_faith, fill = bingo_frequency)) +
+  geom_bar() +
+  theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
+
+complete_childfree %>% filter(bingo_frequency != "I'm not sure whether or not I get bingod.") %>%
+  ggplot(aes(current_faith, fill = bingo_frequency)) +
   geom_bar(position = position_fill()) +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
 #current location and childfree location
-location_childfree <- childfree %>% filter(current_location != "" & !(is.na(childfree_location.)))
-
-location_childfree %>% ggplot(aes(childfree_location., current_location)) +
+#without sample size filter, 
+#Thailand, South Korea, Bahrin, Bahamas top median at 10
+#Russia at bottom at 1
+#with sample size filter,
+#Argentina and Finland top median at 9
+#Romania at bottom at 3
+#US and India have widest range 
+#Spain and Austria have narrowest range 
+complete_childfree %>% ggplot(aes(childfree_location., current_location)) +
   geom_boxplot() +
   geom_jitter(alpha = 0.2)
 
-location_childfree %>% 
+complete_childfree %>% 
   mutate(current_location = reorder(current_location, childfree_location., FUN = median)) %>%
   ggplot(aes(childfree_location., current_location)) +
   geom_boxplot() +
   geom_jitter(alpha = 0.2)
 
-#childfree location and bingo frequency
-childfree_location_bingo <- childfree %>% filter(!(is.na(childfree_location.)) & bingo_frequency != "")
+complete_childfree %>%
+  group_by(current_location) %>%
+  filter(n() >= 5) %>%
+  ungroup() %>%
+  mutate(current_location = reorder(current_location, childfree_location., FUN = median)) %>%
+  ggplot(aes(childfree_location., current_location)) +
+  geom_boxplot() +
+  geom_jitter(alpha = 0.2)
 
-childfree_location_bingo %>% ggplot(aes(childfree_location., bingo_frequency)) +
+complete_childfree %>% filter(current_location != "United States") %>%
+  ggplot(aes(current_location)) + geom_bar() +
+  theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
+
+sort(complete_childfree$current_location)
+
+complete_childfree %>% arrange(.$current_location) %>%
+  filter(current_location != "United States" & current_location != "United Kingdom" & current_location != "Canada") %>%
+  ggplot(aes(current_location)) + geom_bar() +
+  theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
+
+complete_childfree %>% group_by(current_location)
+
+complete_childfree %>% table(.$current_location)
+
+complete_childfree %>% ggplot(aes(current_location)) + geom_bar() +
+  theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
+
+#childfree location and bingo frequency
+#Inverse relationship; Decreasing median childfree location rating with increasing bingo frequency
+#
+#those unsure have similar boxplot to those bingod once every three & six months
+complete_childfree %>% ggplot(aes(childfree_location., bingo_frequency)) +
   geom_boxplot() +
   geom_jitter(alpha = 0.2)
 
 #childfree location and Sterilization_time
-childfree_loc_ster_time <- childfree %>% filter(!(is.na(childfree_location.)) & sterilization_time != "" & sterilization_time != "I haven't been sterilized yet")
-
-childfree_loc_ster_time %>% ggplot(aes(childfree_location., sterilization_time)) +
+#partially postive relationship of medians; 3> months to 30 months around 8 then decreases for >30 months or longer
+#highest median for 12-18 months; lowest median for 7+ years
+#widest IQR for 3> months & 7+ years; narrowest IQR for 6-9 months
+#widest range for 3> months & 3-6 months; narrowest range for 12-18 months
+complete_sterilized %>% ggplot(aes(childfree_location., sterilization_time)) +
   geom_boxplot() +
   geom_jitter(alpha = 0.2)
 
 #childfree location and Doctor_refusals
-childfree_loc_doc_refusals <- childfree %>% filter(!(is.na(childfree_location.)) & doctor_refusals != "" & doctor_refusals != "I haven't found a doctor willing to sterilize me yet")
-
-childfree_loc_doc_refusals %>% ggplot(aes(childfree_location., doctor_refusals)) +
+#not a consistant pattern between groups as refusals increases
+#widest range for 0-2 refusals
+#widest IQR for 2 refusals
+#narrowest IQR for 10+
+#highest median between 0, 2 & 5 refusals
+complete_sterilized %>% ggplot(aes(childfree_location., doctor_refusals)) +
   geom_boxplot() +
   geom_jitter(alpha = 0.2)
 
-childfree_loc_doc_refusals %>% ggplot(aes(childfree_location., doctor_refusals_num)) +
+complete_sterilized %>% ggplot(aes(childfree_location., doctor_refusals_num)) +
   geom_jitter(alpha = 0.2)
 
 #Doctor_search_strat and Doctor_refusals
-doc_strat_refusals <- childfree %>% filter(doctor_search_strat != "" & doctor_refusals != "" & doctor_refusals != "I haven't found a doctor willing to sterilize me yet")
-
-doc_strat_refusals %>% ggplot(aes(doctor_refusals_num, doctor_search_strat)) +
+#those that used doctor referals, insurance/gov/chairity recs, or other online lists experienceed 10+ refusals
+#those that used r/childfree list, other soucres, or other online lists experienceed 5 refusals
+#those that used doctor referals followed by search engines were least likely to experince doctor refusals
+#those that used facebook groups were most likely to experince doctor refusals
+complete_sterilized %>% ggplot(aes(doctor_refusals_num, doctor_search_strat)) +
   geom_boxplot() +
   geom_jitter(alpha = 0.2)
 
-#Age and job importance
-age_job_importance <- childfree %>% filter(age_group != "" & !(is.na(job_importance)))
-
-age_job_importance %>% ggplot(aes(job_importance, age_group)) +
-  geom_boxplot() +
-  geom_jitter(alpha = 0.2)
-
-#SES and job importance
-ses_job_importance <- childfree %>% filter(!(is.na(SES)) & !(is.na(job_importance)))
-
-ses_job_importance %>% ggplot(aes(job_importance, SES)) +
-  geom_jitter(alpha = 0.2)
-
-#Gender and bingo frequency
-gender_bingo <- childfree %>% filter(gender != "" & bingo_frequency != "")
-
-
-gender_bingo %>% ggplot(aes(gender, fill = bingo_frequency)) +
-  geom_bar()
-
-gender_bingo %>% ggplot(aes(gender, fill = bingo_frequency)) +
-  geom_bar(position = position_fill())
-
-
-gender_bingo %>% filter(bingo_frequency != "I'm not sure whether or not I get bingod.") %>% 
-  ggplot(aes(gender, fill = bingo_frequency)) +
-  geom_bar()
-
-gender_bingo %>% filter(bingo_frequency != "I'm not sure whether or not I get bingod.") %>%
-  ggplot(aes(gender, fill = bingo_frequency)) +
-  geom_bar(position = position_fill())
-
-#Age group and bingo frequency
-age_bingo <- childfree %>% filter(age_group != "" & bingo_frequency != "")
-
-
-age_bingo %>% ggplot(aes(age_group, fill = bingo_frequency)) +
+complete_sterilized %>% ggplot(aes(doctor_search_strat, fill = doctor_refusals)) +
   geom_bar() +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
-age_bingo %>% ggplot(aes(age_group, fill = bingo_frequency)) +
+complete_sterilized %>% ggplot(aes(doctor_search_strat, fill = doctor_refusals)) +
   geom_bar(position = position_fill()) +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
+complete_sterilized %>% ggplot(aes(doctor_refusals, fill = doctor_search_strat)) +
+  geom_bar(position = position_fill())
 
-age_bingo %>% filter(bingo_frequency != "I'm not sure whether or not I get bingod.") %>% 
+#Gender and bingo frequency
+#only men report getting bingoed once a day or more
+#men highest % to never report being bingoed
+#gender diverse most likely to report being bingoed at all
+#gender diverse most likely to report being bingoed once a week & once a month
+#women most certain if they get bingoed or not
+complete_childfree %>% ggplot(aes(gender, fill = bingo_frequency)) +
+  geom_bar()
+
+complete_childfree %>% ggplot(aes(gender, fill = bingo_frequency)) +
+  geom_bar(position = position_fill())
+
+complete_childfree %>% filter(bingo_frequency != "I'm not sure whether or not I get bingod.") %>% 
+  ggplot(aes(gender, fill = bingo_frequency)) +
+  geom_bar()
+
+complete_childfree %>% filter(bingo_frequency != "I'm not sure whether or not I get bingod.") %>%
+  ggplot(aes(gender, fill = bingo_frequency)) +
+  geom_bar(position = position_fill())
+
+complete_childfree %>% ggplot(aes(gender_conden, fill = bingo_frequency)) +
+  geom_bar()
+#!
+complete_childfree %>% ggplot(aes(gender_conden, fill = bingo_frequency)) +
+  geom_bar(position = position_fill())
+
+
+complete_childfree %>% filter(bingo_frequency != "I'm not sure whether or not I get bingod.") %>% 
+  ggplot(aes(gender_conden, fill = bingo_frequency)) +
+  geom_bar()
+#!
+complete_childfree %>% filter(bingo_frequency != "I'm not sure whether or not I get bingod.") %>%
+  ggplot(aes(gender_conden, fill = bingo_frequency)) +
+  geom_bar(position = position_fill())
+
+#Age group and bingo frequency
+#more sure of bingoing as age increases, then jumps late 60s and later
+#only late 20s & early 30s report bingod once a day or more
+#increase in reports of bingoed once a week or more up to late 50s
+#decrease in reports of never being bingoed up to early 50s
+#increase in reports of bingoed once a year or less up to early 60s
+complete_childfree %>% ggplot(aes(age_group, fill = bingo_frequency)) +
+  geom_bar() +
+  theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
+
+complete_childfree %>% ggplot(aes(age_group, fill = bingo_frequency)) +
+  geom_bar(position = position_fill()) +
+  theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
+
+complete_childfree %>% filter(bingo_frequency != "I'm not sure whether or not I get bingod.") %>% 
   ggplot(aes(age_group, fill = bingo_frequency)) +
   geom_bar() +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
-age_bingo %>% filter(bingo_frequency != "I'm not sure whether or not I get bingod.") %>%
+complete_childfree %>% filter(bingo_frequency != "I'm not sure whether or not I get bingod.") %>%
   ggplot(aes(age_group, fill = bingo_frequency)) +
   geom_bar(position = position_fill()) +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
 #Relationship status and bingo frequency
-relationship_bingo <- childfree %>% filter(relationship_status != "" & bingo_frequency != "")
-
-
-relationship_bingo %>% ggplot(aes(relationship_status, fill = bingo_frequency)) +
+#single people most likely to report never being bingoed
+#all previously serious report being bingoed
+#only long-term serious report being bingoed once a day or more
+#STR most likely to report being bingoed once a week or more
+#STR most likely to report being bingoed once a month or more
+#STR most likely to report being bingoed once every 3 months or more
+complete_childfree %>% ggplot(aes(relationship_status, fill = bingo_frequency)) +
   geom_bar() +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
-relationship_bingo %>% ggplot(aes(relationship_status, fill = bingo_frequency)) +
+complete_childfree %>% ggplot(aes(relationship_status, fill = bingo_frequency)) +
   geom_bar(position = position_fill()) +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
+complete_childfree %>% ggplot(aes(relation_conden, fill = bingo_frequency)) +
+  geom_bar() +
+  theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
-relationship_bingo %>% filter(bingo_frequency != "I'm not sure whether or not I get bingod.") %>% 
+complete_childfree %>% ggplot(aes(relation_conden, fill = bingo_frequency)) +
+  geom_bar(position = position_fill()) +
+  theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
+
+complete_childfree %>% filter(bingo_frequency != "I'm not sure whether or not I get bingod.") %>% 
   ggplot(aes(relationship_status, fill = bingo_frequency)) +
   geom_bar() +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
-relationship_bingo %>% filter(bingo_frequency != "I'm not sure whether or not I get bingod.") %>%
+complete_childfree %>% filter(bingo_frequency != "I'm not sure whether or not I get bingod.") %>%
   ggplot(aes(relationship_status, fill = bingo_frequency)) +
+  geom_bar(position = position_fill()) +
+  theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
+
+complete_childfree %>% filter(bingo_frequency != "I'm not sure whether or not I get bingod.") %>% 
+  ggplot(aes(relation_conden, fill = bingo_frequency)) +
+  geom_bar() +
+  theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
+
+complete_childfree %>% filter(bingo_frequency != "I'm not sure whether or not I get bingod.") %>%
+  ggplot(aes(relation_conden, fill = bingo_frequency)) +
   geom_bar(position = position_fill()) +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
 #SES and bingo frequency
-ses_bingo <- childfree %>% filter(!(is.na(SES)) & bingo_frequency != "")
-
-
-ses_bingo %>% ggplot(aes(SES, fill = bingo_frequency)) +
+#inverse relationship of SES & uncertainity of bingoing
+#inverse relationship of SES & never being bingoed 
+complete_childfree %>% ggplot(aes(SES, fill = bingo_frequency)) +
   geom_bar() +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
-ses_bingo %>% ggplot(aes(SES, fill = bingo_frequency)) +
+complete_childfree %>% ggplot(aes(SES, fill = bingo_frequency)) +
   geom_bar(position = position_fill()) +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
-
-ses_bingo %>% filter(bingo_frequency != "I'm not sure whether or not I get bingod.") %>% 
+complete_childfree %>% filter(bingo_frequency != "I'm not sure whether or not I get bingod.") %>% 
   ggplot(aes(SES, fill = bingo_frequency)) +
   geom_bar() +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
-ses_bingo %>% filter(bingo_frequency != "I'm not sure whether or not I get bingod.") %>%
+complete_childfree %>% filter(bingo_frequency != "I'm not sure whether or not I get bingod.") %>%
   ggplot(aes(SES, fill = bingo_frequency)) +
   geom_bar(position = position_fill()) +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
-#Ethnicity and bingo frequency, higher for hispanics
-ethnicity_bingo <- childfree %>% filter(ethnicity_conden != "" & bingo_frequency != "")
-
-
-ethnicity_bingo %>% ggplot(aes(ethnicity_conden, fill = bingo_frequency)) +
+#Ethnicity and bingo frequency 
+#minorities least likely to bingoed & most likely to unsure able being bingoed
+#whites most likely to be bingoed & only group to report being bingoed for once a day or more
+#jewish & NA Native only minorites always to be certain if being bingoed or not
+#indian/south asian & middle eastern minorites most likely to be never be bingoed
+#jewish most likely to report being bingoed once a week or more 
+complete_childfree %>% ggplot(aes(racial_minorities, fill = bingo_frequency)) +
   geom_bar() +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
-ethnicity_bingo %>% ggplot(aes(ethnicity_conden, fill = bingo_frequency)) +
+complete_childfree %>% ggplot(aes(racial_minorities, fill = bingo_frequency)) +
   geom_bar(position = position_fill()) +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
-
-ethnicity_bingo %>% filter(bingo_frequency != "I'm not sure whether or not I get bingod.") %>% 
+complete_childfree %>% filter(bingo_frequency != "I'm not sure whether or not I get bingod.") %>% 
   ggplot(aes(racial_minorities, fill = bingo_frequency)) +
   geom_bar() +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
-ethnicity_bingo %>% filter(bingo_frequency != "I'm not sure whether or not I get bingod.") %>%
+complete_childfree %>% filter(bingo_frequency != "I'm not sure whether or not I get bingod.") %>%
   ggplot(aes(racial_minorities, fill = bingo_frequency)) +
   geom_bar(position = position_fill()) +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
+
+complete_childfree %>% filter(racial_minorities == "Ethinc Minority") %>% 
+  ggplot(aes(ethnicity_conden, fill = bingo_frequency)) +
+  geom_bar() +
+  theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
+
+complete_childfree %>% filter(racial_minorities == "Ethinc Minority") %>% 
+  ggplot(aes(ethnicity_conden, fill = bingo_frequency)) +
+  geom_bar() +
+  theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
+
+complete_childfree %>% filter(racial_minorities == "Ethinc Minority") %>% 
+  ggplot(aes(ethnicity_conden, fill = bingo_frequency)) +
+  geom_bar(position = position_fill()) +
+  theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
+
+complete_childfree %>% filter(racial_minorities == "Ethinc Minority") %>% 
+  filter(bingo_frequency != "I'm not sure whether or not I get bingod.") %>% 
+  ggplot(aes(ethnicity_conden, fill = bingo_frequency)) +
+  geom_bar() +
+  theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
+
+complete_childfree %>% filter(racial_minorities == "Ethinc Minority") %>% 
+  filter(bingo_frequency != "I'm not sure whether or not I get bingod.") %>%
+  ggplot(aes(ethnicity_conden, fill = bingo_frequency)) +
+  geom_bar(position = position_fill()) +
+  theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
+
 #Sexual orientation and bingo frequency
-sexuality_bingo <- childfree %>% filter(sexual_orientation != "" & bingo_frequency != "")
-
-sexuality_bingo %>% ggplot(aes(sexual_orientation, fill = bingo_frequency)) +
+#only ace and bi people reported being bingoed once a day or more
+#other sexualities most unsure about being bingoed
+#Ace and gay people most likely to be report never being bingoed 
+#gay and others most likely to being bingoed once a week or more
+complete_childfree %>% ggplot(aes(sexual_orientation, fill = bingo_frequency)) +
   geom_bar() +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
-sexuality_bingo %>% ggplot(aes(sexual_orientation, fill = bingo_frequency)) +
+complete_childfree %>% ggplot(aes(sexual_orientation, fill = bingo_frequency)) +
   geom_bar(position = position_fill()) +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
-
-sexuality_bingo %>% filter(bingo_frequency != "I'm not sure whether or not I get bingod.") %>% 
+complete_childfree %>% filter(bingo_frequency != "I'm not sure whether or not I get bingod.") %>% 
   ggplot(aes(sexual_orientation, fill = bingo_frequency)) +
   geom_bar() +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
 
-sexuality_bingo %>% filter(bingo_frequency != "I'm not sure whether or not I get bingod.") %>%
+complete_childfree %>% filter(bingo_frequency != "I'm not sure whether or not I get bingod.") %>%
   ggplot(aes(sexual_orientation, fill = bingo_frequency)) +
   geom_bar(position = position_fill()) +
   theme(axis.text.x=element_text(size = 5, angle= 20, hjust = 1))
-
-#Intersectionality and bingo frequency
